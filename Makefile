@@ -17,8 +17,9 @@ install :;
 	forge install OpenZeppelin/openzeppelin-contracts
 	forge install transmissions11/solmate
 	forge install OpenZeppelin/openzeppelin-contracts-upgradeable
-
-
+	forge install gnosis/zodiac
+	forge install safe-global/safe-core-sdk
+	
 # Update Dependencies
 update:; forge update
 
@@ -26,5 +27,5 @@ update:; forge update
 build  :; forge clean && forge build --optimize --optimizer-runs 1000000
 
 # add deploy script here
-deploy_goerli:; forge script script/DeployGoerli.s.sol:DeployGoerli --rpc-url $(GOERLI_RPC_URL)  --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_KEY) -vvvvv
+deploy_goerli:; forge script script/Deploy.s.sol:Deploy --rpc-url $(GOERLI_RPC_URL)  --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_KEY) -vvvvv
 
