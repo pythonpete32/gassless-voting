@@ -108,4 +108,14 @@ contract MetaVotingModule is Module, ERC2771Context {
     /* ====================================================================== */
     /*                              INTERNAL UTILS
     /* ====================================================================== */
+
+    function _msgSender()
+        internal
+        view
+        virtual
+        overrides(ContextUpgradeable, ERC2771Context)
+        returns (address)
+    {
+        return ERC2771Context._msgSender();
+    }
 }

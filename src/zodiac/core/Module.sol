@@ -4,10 +4,10 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import "../interfaces/IAvatar.sol";
-import "../factory/FactoryFriendly.sol";
+// import "../factory/FactoryFriendly.sol";
 import "../guard/Guardable.sol";
 
-abstract contract Module is FactoryFriendly, Guardable {
+abstract contract Module is Guardable {
     /// @dev Address that will ultimately execute function calls.
     address public avatar;
     /// @dev Address that this module will pass transactions to.
