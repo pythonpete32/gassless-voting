@@ -18,8 +18,8 @@ install :;
 	forge install transmissions11/solmate
 	forge install OpenZeppelin/openzeppelin-contracts-upgradeable
 	forge install gnosis/zodiac
-	forge install safe-global/safe-core-sdk
-	
+	forge install safe-global/safe-contracts
+
 # Update Dependencies
 update:; forge update
 
