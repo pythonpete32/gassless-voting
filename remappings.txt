@@ -3,4 +3,4 @@ forge-std/=lib/forge-std/src/
 solmate/=lib/solmate/src/
 zodiac/=lib/zodiac/contracts/
 openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/
-OpenZeppelin/openzeppelin-contracts-upgradeable/=openzeppelin-upgradeable/contracts
+openzeppelin-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts
