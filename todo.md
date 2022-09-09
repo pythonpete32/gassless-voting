@@ -1,0 +1,4 @@
+- [ ] create basic voting app
+- [ ] import biconomy stuff into it
+- [ ] make it into a gnosis module
+- [ ] make foundry tests
