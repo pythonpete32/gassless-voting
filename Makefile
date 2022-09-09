@@ -16,7 +16,8 @@ install :;
 	forge install foundry-rs/forge-std
 	forge install OpenZeppelin/openzeppelin-contracts
 	forge install transmissions11/solmate
-	forge install gnosis/zodiac
+	forge install OpenZeppelin/openzeppelin-contracts-upgradeable
+
 
 # Update Dependencies
 update:; forge update

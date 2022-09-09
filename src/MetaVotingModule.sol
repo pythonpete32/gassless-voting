@@ -3,7 +3,7 @@ pragma solidity ^0.8.15;
 
 import "openzeppelin-contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "openzeppelin-contracts/metatx/ERC2771Context.sol";
-import "zodiac/base/Module.sol";
+import "zodiac/core/Module.sol";
 
 contract MetaVotingModule is Module, ERC2771Context {
     /* ====================================================================== */
