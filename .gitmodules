@@ -13,3 +13,6 @@
 [submodule "lib/zodiac"]
 	path = lib/zodiac
 	url = https://github.com/gnosis/zodiac
+[submodule "lib/safe-core-sdk"]
+	path = lib/safe-core-sdk
+	url = https://github.com/safe-global/safe-core-sdk
