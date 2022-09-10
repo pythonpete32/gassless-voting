@@ -7,7 +7,7 @@ import "../zodiac/guard/BaseGuard.sol";
 import "../zodiac/factory/FactoryFriendly.sol";
 import "../zodiac/core/Module.sol";
 import "openzeppelin-upgradeable/access/OwnableUpgradeable.sol";
-import {GnosisSafe} from "safe-global/GnosisSafe.sol";
+import {GnosisSafe} from "safe-contracts/GnosisSafe.sol";
 
 contract TestGuard is FactoryFriendly, BaseGuard {
     event PreChecked(bool checked);
