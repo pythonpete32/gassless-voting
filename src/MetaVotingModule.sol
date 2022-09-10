@@ -386,8 +386,8 @@ contract MetaVotingModule is Module, ERC2771Context, Ownable {
         onlyOwner
     {
         if (minAcceptQuorumPct > _supportRequiredPct)
-            revert MinAcceptQuorumPctTooHigh();
-        if (_supportRequiredPct > PCT_BASE) revert SupportTooHigh();
+            revert QuorumRequiredPctTooHigh();
+        if (_supportRequiredPct > PCT_BASE) revert QuorumRequiredPctTooHigh();
         supportRequiredPct = _supportRequiredPct;
 
         emit ChangeSupportRequired(_supportRequiredPct);
@@ -400,7 +400,7 @@ contract MetaVotingModule is Module, ERC2771Context, Ownable {
         onlyOwner
     {
         if (_minAcceptQuorumPct > supportRequiredPct)
-            revert MinAcceptQuorumPctTooHigh();
+            revert QuorumRequiredPctTooHigh();
         minAcceptQuorumPct = _minAcceptQuorumPct;
 
         emit ChangeMinQuorum(_minAcceptQuorumPct);
