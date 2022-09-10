@@ -5,12 +5,13 @@ import "forge-std/Test.sol";
 import {VotingToken} from "../src/mocks/VotingToken.sol";
 import {MetaVotingModule} from "../src/MetaVotingModule.sol";
 
-contract AgreementFrameworkTestBase is Test {
+contract MetaVotingTestBase is Test {
     // users
+    address DAO = vm.addr(0xDA0);
     address bob = vm.addr(0xB0B);
     address alice = vm.addr(0xA11CE);
     address carol = vm.addr(0xCA401);
-    address DAO = vm.addr(0xDA0);
+    address[] users = [bob, alice, carol];
 
     // contracts
     VotingToken public votingToken;
@@ -24,7 +25,7 @@ contract AgreementFrameworkTestBase is Test {
 
     function setUp() public {
         votingToken = new VotingToken();
-        votingToken.mint([alice, bob, carol], THOUSAND_TOKENS);
+        votingToken.mint(users, THOUSAND_TOKENS);
         votingModule = new MetaVotingModule();
         votingModule.initialize(
             votingToken,
