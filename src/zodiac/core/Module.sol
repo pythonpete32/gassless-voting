@@ -3,9 +3,10 @@
 /// @title Module Interface - A contract that can pass messages to a Module Manager contract if enabled by that contract.
 pragma solidity >=0.7.0 <0.9.0;
 
-import "../interfaces/IAvatar.sol";
 // import "../factory/FactoryFriendly.sol";
+import "../interfaces/IAvatar.sol";
 import "../guard/Guardable.sol";
+import {Operation} from "../../lib/Operation.sol";
 
 abstract contract Module is Guardable {
     /// @dev Address that will ultimately execute function calls.
@@ -44,7 +45,7 @@ abstract contract Module is Guardable {
         address to,
         uint256 value,
         bytes memory data,
-        Enum.Operation operation
+        Operation operation
     ) internal returns (bool success) {
         /// Check if a transactioon guard is enabled.
         if (guard != address(0)) {
@@ -86,7 +87,7 @@ abstract contract Module is Guardable {
         address to,
         uint256 value,
         bytes memory data,
-        Enum.Operation operation
+        Operation operation
     ) internal returns (bool success, bytes memory returnData) {
         /// Check if a transactioon guard is enabled.
         if (guard != address(0)) {

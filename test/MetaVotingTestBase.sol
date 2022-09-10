@@ -4,6 +4,7 @@ pragma solidity ^0.8.15;
 import "forge-std/Test.sol";
 import {VotingToken} from "../src/mocks/VotingToken.sol";
 import {MetaVotingModule} from "../src/MetaVotingModule.sol";
+import {Operation} from "../src/lib/Operation.sol";
 
 contract MetaVotingTestBase is Test {
     // users
@@ -22,6 +23,13 @@ contract MetaVotingTestBase is Test {
     uint64 public FIFTY_PERCENT = 50 * 10**16;
     uint64 public FIVE_PERCENT = 5 * 10**16;
     uint64 public VOTE_LENGTH = (60 * 60 * 24 * 7); // 1 week
+
+    // test vote
+    address to_ = bob;
+    uint256 value_ = 1;
+    bytes data_ = "0x";
+    string metadata_ = "test vote";
+    Operation operation = 0;
 
     function setUp() public {
         votingToken = new VotingToken();
