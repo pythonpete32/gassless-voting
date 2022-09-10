@@ -4,9 +4,8 @@ pragma solidity ^0.8.15;
 import "./zodiac/core/Module.sol";
 import "openzeppelin-contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "openzeppelin-contracts/metatx/ERC2771Context.sol";
-import "openzeppelin-contracts/access/Ownable.sol";
 
-contract MetaVotingModule is Module, ERC2771Context, Ownable {
+contract MetaVotingModule is Module, ERC2771Context {
     /* ====================================================================== */
     /*                              ERRORS
     /* ====================================================================== */
@@ -35,7 +34,8 @@ contract MetaVotingModule is Module, ERC2771Context, Ownable {
     /// @notice Emitted when a vote is casted
     /// @param voteId The id of the vote
     /// @param voter The voter
-    /// @param supports The support of the vote: 0 == absent, 1 == yes, 2 == no
+    /// @param support The support of the vote: 0 == absent, 1 == yes, 2 == no
+    /// @param stake The voting power of the voter
     event CastVote(
         uint256 indexed voteId,
         address indexed voter,
@@ -47,13 +47,13 @@ contract MetaVotingModule is Module, ERC2771Context, Ownable {
     /// @param voteId The id of the vote
     event ExecuteVote(uint256 indexed voteId);
 
-    /// @notice Emitted when a vote is cancelled
-    /// @param voteId The id of the vote
+    /// @notice Emitted when support required pct is changed
+    /// @param supportRequiredPct the new support required pct
     event ChangeSupportRequired(uint64 supportRequiredPct);
 
     /// @notice Emitted when the quorum required is changed
     /// @param quorumRequiredPct The new quorum required
-    event ChangeMinQuorum(uint64 minAcceptQuorumPct);
+    event ChangeMinQuorum(uint64 quorumRequiredPct);
 
     /* ====================================================================== */
     /*                              STORAGE
@@ -155,11 +155,12 @@ contract MetaVotingModule is Module, ERC2771Context, Ownable {
     {
         Vote storage vote_ = votes[_voteId];
         return
-            isVoteOpen(vote_) &&
+            isVoteOpen(_voteId) &&
             token.getPastVotes(_voter, vote_.snapshotBlock) > 0;
     }
 
-    function isVoteOpen(Vote storage vote_) public view returns (bool) {
+    function isVoteOpen(uint256 voteId) public view returns (bool) {
+        Vote storage vote_ = votes[voteId];
         return
             uint64(block.number) < vote_.startDate + voteTime &&
             !vote_.executed;
