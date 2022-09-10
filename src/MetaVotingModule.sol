@@ -122,7 +122,7 @@ contract MetaVotingModule is Module, ERC2771Context {
 
     // TODO: reenable this modifier
     // modifier voteExists(uint256 _voteId) {
-    //     if (_voteId < votesLength) revert VoteDoesNotExist();
+    //     if (_voteId > votesLength) revert VoteDoesNotExist();
     //     _;
     // }
 
@@ -181,7 +181,6 @@ contract MetaVotingModule is Module, ERC2771Context {
         external
         view
         returns (
-            // voteExists(_voteId)
             bool _executed,
             uint64 _startDate,
             uint64 _snapshotBlock,
@@ -192,6 +191,7 @@ contract MetaVotingModule is Module, ERC2771Context {
             uint256 _votingPower
         )
     {
+        if (_voteId > votesLength) revert VoteDoesNotExist();
         Vote storage vote_ = votes[_voteId];
         _executed = vote_.executed;
         _startDate = vote_.startDate;
@@ -211,11 +211,9 @@ contract MetaVotingModule is Module, ERC2771Context {
     function getVoterState(uint256 _voteId, address _voter)
         public
         view
-        returns (
-            // voteExists(_voteId)
-            VoterState
-        )
+        returns (VoterState)
     {
+        if (_voteId > votesLength) revert VoteDoesNotExist();
         return votes[_voteId].voters[_voter];
     }
 
@@ -224,6 +222,7 @@ contract MetaVotingModule is Module, ERC2771Context {
         view
         returns (bool)
     {
+        if (_voteId > votesLength) revert VoteDoesNotExist();
         Vote storage vote_ = votes[_voteId];
         return
             isVoteOpen(_voteId) &&
@@ -248,10 +247,8 @@ contract MetaVotingModule is Module, ERC2771Context {
 
         // Voting is already decided
         if (
-            // TODO: This is incorrect! figure out how comes voting power is screwed up
             _isValuePct(vote_.yea, vote_.votingPower, vote_.supportRequiredPct)
         ) {
-            emit TestLog("PERCENTAGES CALCULATIONS ARE SCREWED!!!!");
             return true;
         }
 
@@ -270,7 +267,6 @@ contract MetaVotingModule is Module, ERC2771Context {
         ) {
             return false;
         }
-        emit TestLog("SHOULD NOT BE HERE IN TEST");
         return true;
     }
 
@@ -335,6 +331,7 @@ contract MetaVotingModule is Module, ERC2771Context {
         // find the current blocknumber
         uint64 snapshotBlock = uint64(block.number - 1); // avoid double voting in this very block
 
+        // check if the creator has voting power
         uint256 votingPower = token.getPastVotes(_msgSender(), snapshotBlock);
         if (votingPower == 0) revert NoVotingPower();
 
