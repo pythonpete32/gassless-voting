@@ -63,6 +63,7 @@ contract MetaVotingModule is Module, ERC2771Context {
     );
 
     event TestLog(string message);
+    event TestLog(string message, uint256 value);
 
     /* ====================================================================== */
     /*                              STORAGE
@@ -119,10 +120,11 @@ contract MetaVotingModule is Module, ERC2771Context {
     /*                              MODIFIERS
     /* ====================================================================== */
 
-    modifier voteExists(uint256 _voteId) {
-        if (_voteId < votesLength) revert VoteDoesNotExist();
-        _;
-    }
+    // TODO: reenable this modifier
+    // modifier voteExists(uint256 _voteId) {
+    //     if (_voteId < votesLength) revert VoteDoesNotExist();
+    //     _;
+    // }
 
     /* ====================================================================== */
     /*                              CONSTRUCTOR
@@ -178,8 +180,8 @@ contract MetaVotingModule is Module, ERC2771Context {
     function getVote(uint256 _voteId)
         external
         view
-        voteExists(_voteId)
         returns (
+            // voteExists(_voteId)
             bool _executed,
             uint64 _startDate,
             uint64 _snapshotBlock,
@@ -209,8 +211,10 @@ contract MetaVotingModule is Module, ERC2771Context {
     function getVoterState(uint256 _voteId, address _voter)
         public
         view
-        voteExists(_voteId)
-        returns (VoterState)
+        returns (
+            // voteExists(_voteId)
+            VoterState
+        )
     {
         return votes[_voteId].voters[_voter];
     }
@@ -300,8 +304,8 @@ contract MetaVotingModule is Module, ERC2771Context {
     function vote(
         uint256 _voteId,
         bool _supports,
-        bool _executesIfDecided
-    ) external voteExists(_voteId) {
+        bool _executesIfDecided // voteExists(_voteId)
+    ) external {
         if (!canVote(_voteId, msg.sender)) revert CannotVote();
         _vote(_voteId, _supports, msg.sender, _executesIfDecided);
     }
@@ -334,14 +338,15 @@ contract MetaVotingModule is Module, ERC2771Context {
         uint256 votingPower = token.getPastVotes(_msgSender(), snapshotBlock);
         if (votingPower == 0) revert NoVotingPower();
 
-        voteId = votesLength++;
+        voteId = votesLength;
+        votesLength++;
 
         Vote storage vote_ = votes[voteId];
         vote_.startDate = uint64(block.number);
         vote_.snapshotBlock = snapshotBlock;
         vote_.supportRequiredPct = supportRequiredPct;
         vote_.minAcceptQuorumPct = minAcceptQuorumPct;
-        vote_.votingPower = votingPower;
+        vote_.votingPower = token.getPastTotalSupply(snapshotBlock);
         vote_.to = _to;
         vote_.value = _value;
         vote_.data = _data;
@@ -386,10 +391,10 @@ contract MetaVotingModule is Module, ERC2771Context {
         emit CastVote(_voteId, _voter, _supports, voterStake);
 
         // TODO: implement executeVote
-        if (_executesIfDecided && canExecute(_voteId)) {
-            // We've already checked if the vote can be executed with `_canExecute()`
-            _unsafeExecuteVote(_voteId);
-        }
+        // if (_executesIfDecided && canExecute(_voteId)) {
+        //     // We've already checked if the vote can be executed with `_canExecute()`
+        //     _unsafeExecuteVote(_voteId);
+        // }
     }
 
     /// @dev Internal function to execute a vote. It assumes the queried vote exists.
