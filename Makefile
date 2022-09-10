@@ -27,5 +27,5 @@ update:; forge update
 build  :; forge clean && forge build --optimize --optimizer-runs 1000000
 
 # add deploy script here
-deploy_goerli:; forge script script/Deploy.s.sol:Deploy --rpc-url $(GOERLI_RPC_URL)  --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_KEY) -vvvvv
+deploy:; forge script script/Deploy.s.sol:Deploy --rpc-url $(GOERLI_RPC_URL)  --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_KEY) -vvvvv
 
