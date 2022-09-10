@@ -15,9 +15,7 @@ remove :; rm -rf .gitmodules && rm -rf .git/modules/* && rm -rf lib && touch .gi
 install :; 
 	forge install foundry-rs/forge-std
 	forge install OpenZeppelin/openzeppelin-contracts
-	forge install transmissions11/solmate
 	forge install OpenZeppelin/openzeppelin-contracts-upgradeable
-	forge install gnosis/zodiac
 	forge install safe-global/safe-contracts
 
 # Update Dependencies
