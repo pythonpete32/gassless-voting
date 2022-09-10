@@ -7,5 +7,6 @@ contract MetaVotingTest is MetaVotingTestBase {
     function testNewVote() public {
         vm.startPrank(alice);
         votingModule.newVote(to_, value_, data_, operation, metadata_);
+        vm.stopPrank();
     }
 }

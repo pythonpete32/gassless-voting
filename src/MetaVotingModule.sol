@@ -55,6 +55,15 @@ contract MetaVotingModule is Module, ERC2771Context {
     /// @param quorumRequiredPct The new quorum required
     event ChangeMinQuorum(uint64 quorumRequiredPct);
 
+    event Initialized(
+        ERC20Votes token,
+        uint64 supportRequiredPct,
+        uint64 minAcceptQuorumPct,
+        uint64 voteTime
+    );
+
+    event TestLog(string message);
+
     /* ====================================================================== */
     /*                              STORAGE
     /* ====================================================================== */
@@ -89,7 +98,7 @@ contract MetaVotingModule is Module, ERC2771Context {
     ERC20Votes public token;
 
     /// @notice 100% expressed as a percentage of 10^18
-    uint64 public constant PCT_BASE = 10**18;
+    uint64 public PCT_BASE;
     /// @notice The support required to pass a vote (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
     uint64 public supportRequiredPct;
     /// @notice The minimum acceptance quorum for a vote to succeed (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
@@ -119,22 +128,24 @@ contract MetaVotingModule is Module, ERC2771Context {
     /*                              CONSTRUCTOR
     /* ====================================================================== */
 
-    constructor() ERC2771Context(metaTxForwarder) {}
+    constructor() ERC2771Context(metaTxForwarder) {
+        // transferOwnership(msg.sender);
+    }
 
     /// @notice Initializes the contract
     /// @param _token The address of the voting token
     /// @param _supportRequiredPct The support required to pass a vote (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
     /// @param _minAcceptQuorumPct The minimum acceptance quorum for a vote to succeed (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
     /// @param _voteTime The duration of a vote in seconds
-
     function initialize(
         ERC20Votes _token,
         uint64 _supportRequiredPct,
         uint64 _minAcceptQuorumPct,
         uint64 _voteTime
-    ) external onlyOwner {
+    ) external initializer {
+        __Ownable_init();
         initialized = true;
-
+        PCT_BASE = 10**18;
         if (_minAcceptQuorumPct > _supportRequiredPct)
             revert QuorumRequiredPctTooHigh();
         if (_supportRequiredPct > PCT_BASE) revert SupportRequiredPctTooHigh();
@@ -142,6 +153,12 @@ contract MetaVotingModule is Module, ERC2771Context {
         supportRequiredPct = _supportRequiredPct;
         minAcceptQuorumPct = _minAcceptQuorumPct;
         voteTime = _voteTime;
+        emit Initialized(
+            _token,
+            _supportRequiredPct,
+            _minAcceptQuorumPct,
+            _voteTime
+        );
     }
 
     /* ====================================================================== */
@@ -218,7 +235,7 @@ contract MetaVotingModule is Module, ERC2771Context {
 
     /// @dev function to check if a vote can be executed. It assumes the queried vote exists.
     /// @return True if the given vote can be executed, false otherwise
-    function canExecute(uint256 _voteId) public view returns (bool) {
+    function canExecute(uint256 _voteId) public returns (bool) {
         Vote storage vote_ = votes[_voteId];
 
         if (vote_.executed) {
@@ -227,8 +244,10 @@ contract MetaVotingModule is Module, ERC2771Context {
 
         // Voting is already decided
         if (
+            // TODO: This is incorrect! figure out how comes voting power is screwed up
             _isValuePct(vote_.yea, vote_.votingPower, vote_.supportRequiredPct)
         ) {
+            emit TestLog("PERCENTAGES CALCULATIONS ARE SCREWED!!!!");
             return true;
         }
 
@@ -247,7 +266,7 @@ contract MetaVotingModule is Module, ERC2771Context {
         ) {
             return false;
         }
-
+        emit TestLog("SHOULD NOT BE HERE IN TEST");
         return true;
     }
 
@@ -382,7 +401,7 @@ contract MetaVotingModule is Module, ERC2771Context {
     /// @dev Unsafe version of _executeVote that assumes you have already checked if the vote can be executed and exists
     function _unsafeExecuteVote(uint256 _voteId) internal {
         Vote storage vote_ = votes[_voteId];
-
+        emit TestLog("Should not be HERE!!!!!!");
         vote_.executed = true;
 
         exec(vote_.to, vote_.value, vote_.data, vote_.operation);
@@ -417,7 +436,7 @@ contract MetaVotingModule is Module, ERC2771Context {
         uint256 _value,
         uint256 _total,
         uint256 _pct
-    ) internal pure returns (bool) {
+    ) internal view returns (bool) {
         if (_total == 0) {
             return false;
         }
