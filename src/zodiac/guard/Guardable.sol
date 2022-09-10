@@ -2,8 +2,8 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import "../common/Enum.sol";
-import "openzeppelin-upgradeable/access/OwnableUpgradeable.sol";
 import "./BaseGuard.sol";
+import "openzeppelin-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @title Guardable - A contract that manages fallback calls made to this contract
 contract Guardable is OwnableUpgradeable {

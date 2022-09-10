@@ -1,6 +1,6 @@
 ds-test/=lib/solmate/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
-solmate/=lib/solmate/src/
 zodiac/=lib/zodiac/contracts/
 openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/
 openzeppelin-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts
+safe-contracts/=lib/safe-contracts/contracts
