@@ -148,6 +148,56 @@ contract MetaVotingModule is Module, ERC2771Context {
     /*                              VIEWS
     /* ====================================================================== */
 
+    /// @notice Returns all the vote info of a given id (minus the call data if sucessfull)
+    /// @param _voteId The id of the vote
+    /// @return _executed Whether the vote has been executed or not
+    /// @return _startDate The start date of the vote
+    /// @return _snapshotBlock The block number of the snapshot
+    /// @return _supportRequiredPct The support required to pass a vote (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
+    /// @return _minAcceptQuorumPct The minimum acceptance quorum for a vote to succeed (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
+    /// @return _yea The total voting power in favor of the vote
+    /// @return _nay The total voting power against the vote
+    /// @return _votingPower The total voting power
+    function getVote(uint256 _voteId)
+        external
+        view
+        voteExists(_voteId)
+        returns (
+            bool _executed,
+            uint64 _startDate,
+            uint64 _snapshotBlock,
+            uint64 _supportRequiredPct,
+            uint64 _minAcceptQuorumPct,
+            uint256 _yea,
+            uint256 _nay,
+            uint256 _votingPower
+        )
+    {
+        Vote storage vote_ = votes[_voteId];
+        _executed = vote_.executed;
+        _startDate = vote_.startDate;
+        _snapshotBlock = vote_.snapshotBlock;
+        _supportRequiredPct = vote_.supportRequiredPct;
+        _minAcceptQuorumPct = vote_.minAcceptQuorumPct;
+        _yea = vote_.yea;
+        _nay = vote_.nay;
+        _votingPower = vote_.votingPower;
+    }
+
+    /**
+     * @dev Return the state of a voter for a given vote by its ID
+     * @param _voteId Vote identifier
+     * @return VoterState of the requested voter for a certain vote
+     */
+    function getVoterState(uint256 _voteId, address _voter)
+        public
+        view
+        voteExists(_voteId)
+        returns (VoterState)
+    {
+        return votes[_voteId].voters[_voter];
+    }
+
     function canVote(uint256 _voteId, address _voter)
         public
         view

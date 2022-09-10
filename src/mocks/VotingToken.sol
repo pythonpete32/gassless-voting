@@ -6,12 +6,27 @@ import "openzeppelin-contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "openzeppelin-contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract VotingToken is ERC20, ERC20Permit, ERC20Votes {
+    error MintArrayLengthMismatch();
+
     constructor() ERC20("Voting Token", "MTK") ERC20Permit("Voting Token") {
-        _mint(msg.sender, 1000000000000000000000000);
+        // _mint(msg.sender, 1000000000000000000000000);
     }
 
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
+    }
+
+    function mint(address[] memory to, uint256[] memory amount) external {
+        if (to.length != amount.length) revert MintArrayLengthMismatch();
+        for (uint256 i = 0; i < to.length; i++) {
+            _mint(to[i], amount[i]);
+        }
+    }
+
+    function mint(address[] memory to, uint256 amount) external {
+        for (uint256 i = 0; i < to.length; i++) {
+            _mint(to[i], amount);
+        }
     }
 
     // The following functions are overrides required by Solidity.
