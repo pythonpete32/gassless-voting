@@ -4,6 +4,7 @@ pragma solidity >=0.7.0 <0.9.0;
 import "../common/Enum.sol";
 import "../interfaces/IGuard.sol";
 import "openzeppelin-contracts/utils/introspection/IERC165.sol";
+import "../common/Enum.sol";
 
 abstract contract BaseGuard is IERC165 {
     function supportsInterface(bytes4 interfaceId)
