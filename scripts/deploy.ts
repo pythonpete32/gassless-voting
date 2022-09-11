@@ -55,7 +55,7 @@ async function main() {
   log('Module verified');
 
   log('setting up Module')
-  await module.initialize(token.address, FIFTY_PERCENT, FIVE_PERCENT, VOTE_LENGTH, "5")
+  await module.initialize(safeSdk.getAddress(), token.address, FIFTY_PERCENT, FIVE_PERCENT, VOTE_LENGTH, "5")
   // avatar.enableModule(address(votingModule));
   // assertTrue(avatar.isModuleEnabled(address(votingModule)));
   await module.setAvatar(safeSdk.getAddress());
