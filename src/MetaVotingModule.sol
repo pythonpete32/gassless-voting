@@ -166,6 +166,7 @@ contract MetaVotingModule is Module, ERC2771Context {
     /* ====================================================================== */
 
     /// @notice Create a new vote about "`_metadata`"
+    /// @param _from The address of the voter
     /// @param _to Address of the contract to be called
     /// @param _value Amount of Ether to be sent
     /// @param _data Calldata to be sent
@@ -176,6 +177,7 @@ contract MetaVotingModule is Module, ERC2771Context {
     /// @param _s Signature s parameter
     /// @return voteId Id for newly created vote
     function newVote(
+        address _from,
         address _to,
         uint256 _value,
         bytes memory _data,
@@ -186,8 +188,8 @@ contract MetaVotingModule is Module, ERC2771Context {
         uint8 _v
     ) external returns (uint256 voteId) {
         MetaTransaction memory metaTx = MetaTransaction({
-            nonce: nonces[_msgSender()],
-            from: _msgSender()
+            nonce: nonces[_from],
+            from: _from
         });
 
         bytes32 digest = keccak256(
@@ -203,10 +205,9 @@ contract MetaVotingModule is Module, ERC2771Context {
                 )
             )
         );
-        if (_msgSender() == address(0)) revert InvalidAddress();
-        if (_msgSender() != ecrecover(digest, _v, _r, _s))
-            revert InvalidSignature();
-        nonces[_msgSender()]++;
+        if (_from == address(0)) revert InvalidAddress();
+        if (_from != ecrecover(digest, _v, _r, _s)) revert InvalidSignature();
+        nonces[_from]++;
 
         return _newVote(_to, _value, _data, _operation, _metadata, true, true);
     }
@@ -231,6 +232,7 @@ contract MetaVotingModule is Module, ERC2771Context {
     /// @notice Vote `_supports ? 'yes' : 'no'` in vote #`_voteId`
     /// @dev Initialization check is implicitly provided by `voteExists()` as new votes can only be
     ///      created via `newVote(),` which requires initialization
+    /// @param _from The address of the voter
     /// @param _voteId Id for vote
     /// @param _supports Whether voter supports the vote
     /// @param _executesIfDecided Whether the vote should execute its action if it becomes decided
@@ -238,6 +240,7 @@ contract MetaVotingModule is Module, ERC2771Context {
     /// @param _r Signature r parameter
     /// @param _s Signature s parameter
     function vote(
+        address _from,
         uint256 _voteId,
         bool _supports,
         bool _executesIfDecided, // voteExists(_voteId)
@@ -245,11 +248,11 @@ contract MetaVotingModule is Module, ERC2771Context {
         bytes32 _s,
         uint8 _v
     ) external {
-        if (!canVote(_voteId, msg.sender)) revert CannotVote();
+        if (!canVote(_voteId, _from)) revert CannotVote();
 
         MetaTransaction memory metaTx = MetaTransaction({
-            nonce: nonces[_msgSender()],
-            from: _msgSender()
+            nonce: nonces[_from],
+            from: _from
         });
 
         bytes32 digest = keccak256(
@@ -265,12 +268,11 @@ contract MetaVotingModule is Module, ERC2771Context {
                 )
             )
         );
-        if (_msgSender() == address(0)) revert InvalidAddress();
-        if (_msgSender() != ecrecover(digest, _v, _r, _s))
-            revert InvalidSignature();
-        nonces[_msgSender()]++;
+        if (_from == address(0)) revert InvalidAddress();
+        if (_from != ecrecover(digest, _v, _r, _s)) revert InvalidSignature();
+        nonces[_from]++;
 
-        _vote(_voteId, _supports, msg.sender, _executesIfDecided);
+        _vote(_voteId, _supports, _msgSender(), _executesIfDecided);
     }
 
     /// @notice Vote `_supports ? 'yes' : 'no'` in vote #`_voteId`
@@ -284,8 +286,8 @@ contract MetaVotingModule is Module, ERC2771Context {
         bool _supports,
         bool _executesIfDecided // voteExists(_voteId)
     ) external {
-        if (!canVote(_voteId, msg.sender)) revert CannotVote();
-        _vote(_voteId, _supports, msg.sender, _executesIfDecided);
+        if (!canVote(_voteId, _msgSender())) revert CannotVote();
+        _vote(_voteId, _supports, _msgSender(), _executesIfDecided);
     }
 
     /// @dev public function to execute a vote
