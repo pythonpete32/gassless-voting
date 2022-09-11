@@ -58,6 +58,7 @@ contract MetaVotingTest is MetaVotingTestBase {
     function testFailsOnReinitialisation() public {
         vm.startPrank(alice);
         votingModule.initialize(
+            address(avatar),
             votingToken,
             FIFTY_PERCENT,
             FIVE_PERCENT,

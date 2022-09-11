@@ -1,4 +1,5 @@
-require("dotenv").config();
+import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
+dotenv.config()
 import fs from "fs";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-etherscan";
@@ -6,6 +7,7 @@ import "@typechain/hardhat";
 import "hardhat-preprocessor";
 import { HardhatUserConfig, task } from "hardhat/config";
 
+const { POLYGON_RPC_URL, GOERLI_RPC_URL, PRIVATE_KEY, ETHERSCAN_KEY } = process.env
 import example from "./tasks/example";
 
 function getRemappings() {
@@ -18,15 +20,29 @@ function getRemappings() {
 
 task("example", "Example task").setAction(example);
 
+
+
+
 const config: HardhatUserConfig = {
-  solidity: {
-    version: "0.8.15",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200,
-      },
+  solidity: "0.8.15",
+  networks: {
+    local: {
+      url: "http://127.0.0.1:8545"
     },
+    goerli: {
+      url: GOERLI_RPC_URL,
+      accounts: [PRIVATE_KEY],
+      forking: {
+        url: GOERLI_RPC_URL,
+      }
+    },
+    polygon: {
+      url: POLYGON_RPC_URL,
+      accounts: [PRIVATE_KEY],
+    }
+  },
+  etherscan: {
+    apiKey: ETHERSCAN_KEY
   },
   paths: {
     sources: "./src", // Use ./src rather than ./contracts as Hardhat expects

@@ -42,21 +42,26 @@ contract MetaVotingTestBase is Test {
     }
 
     function setupDao() internal {
+        // deploy avatar
+        avatar = new TestAvatar();
+
+        // deploy safe
         votingModule = new MetaVotingModule();
         votingModule.initialize(
+            address(avatar),
             votingToken,
             FIFTY_PERCENT,
             FIVE_PERCENT,
             VOTE_LENGTH,
             1337 // chain id
         );
-        avatar = new TestAvatar();
+
+        // enable voting module
         avatar.enableModule(address(votingModule));
         assertTrue(avatar.isModuleEnabled(address(votingModule)));
-        votingModule.setAvatar(address(avatar));
-        votingModule.setTarget(address(avatar));
+
+        // give the avatar some funds
         vm.deal(address(avatar), 1000 ether);
-        votingModule.transferOwnership(address(avatar));
     }
 
     function setupToken() internal {
