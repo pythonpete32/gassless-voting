@@ -47,12 +47,14 @@ contract MetaVotingTestBase is Test {
             votingToken,
             FIFTY_PERCENT,
             FIVE_PERCENT,
-            VOTE_LENGTH
+            VOTE_LENGTH,
+            1337 // chain id
         );
         avatar = new TestAvatar();
         avatar.enableModule(address(votingModule));
         assertTrue(avatar.isModuleEnabled(address(votingModule)));
         votingModule.setAvatar(address(avatar));
+        votingModule.setTarget(address(avatar));
         vm.deal(address(avatar), 1000 ether);
         votingModule.transferOwnership(address(avatar));
     }

@@ -26,3 +26,15 @@ struct Vote {
     Enum.Operation operation;
     mapping(address => VoterState) voters;
 }
+
+struct EIP712Domain {
+    string name;
+    string version;
+    uint256 chainId;
+    address verifyingContract;
+}
+
+struct MetaTransaction {
+    uint256 nonce;
+    address from;
+}

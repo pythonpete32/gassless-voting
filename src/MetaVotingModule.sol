@@ -1,11 +1,52 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.15;
 
+import "./lib/common.sol";
 import "./zodiac/core/Module.sol";
 import "openzeppelin-contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "openzeppelin-contracts/metatx/ERC2771Context.sol";
 
 contract MetaVotingModule is Module, ERC2771Context {
+    /* ====================================================================== */
+    /*                              STORAGE
+    /* ====================================================================== */
+
+    /// @notice is the contract initialized
+    bool public initialized;
+    /// @notice The voting token
+    ERC20Votes public token;
+
+    /// @notice 100% expressed as a percentage of 10^18
+    uint64 public PCT_BASE;
+    /// @notice The support required to pass a vote (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
+    uint64 public supportRequiredPct;
+    /// @notice The minimum acceptance quorum for a vote to succeed (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
+    uint64 public minAcceptQuorumPct;
+    /// @notice The duration of a vote in seconds
+    uint64 public voteTime;
+
+    /// @notice The total number of votes
+    uint256 public votesLength;
+    /// @notice Mocking a variable length array of all the votes created
+    mapping(uint256 => Vote) internal votes;
+
+    /// @notice The address of the MetaTransactionForwarder
+    address public immutable metaTxForwarder =
+        0x84a0856b038eaAd1cC7E297cF34A7e72685A8693;
+
+    /// META TX
+    /// @notice This is a map of user address and a nonce to prevent replay attacks
+    mapping(address => uint256) public nonces;
+    bytes32 internal constant EIP712_DOMAIN_TYPEHASH =
+        keccak256(
+            bytes(
+                "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+            )
+        );
+    bytes32 internal constant META_TRANSACTION_TYPEHASH =
+        keccak256(bytes("MetaTransaction(uint256 nonce,address from)"));
+    bytes32 internal DOMAIN_SEPARATOR;
+
     /* ====================================================================== */
     /*                              ERRORS
     /* ====================================================================== */
@@ -16,6 +57,8 @@ contract MetaVotingModule is Module, ERC2771Context {
     error CannotVote();
     error VoteDoesNotExist();
     error CannotExecute();
+    error InvalidAddress();
+    error InvalidSignature();
 
     /* ====================================================================== */
     /*                              EVENTS
@@ -66,84 +109,23 @@ contract MetaVotingModule is Module, ERC2771Context {
     event TestLog(string message, uint256 value);
 
     /* ====================================================================== */
-    /*                              STORAGE
-    /* ====================================================================== */
-
-    /// @notice The voting state
-    enum VoterState {
-        Absent,
-        Yea,
-        Nay
-    }
-
-    /// @notice The vote struct
-    struct Vote {
-        bool executed;
-        uint64 startDate;
-        uint64 snapshotBlock;
-        uint64 supportRequiredPct;
-        uint64 minAcceptQuorumPct;
-        uint256 yea;
-        uint256 nay;
-        uint256 votingPower;
-        address to;
-        uint256 value;
-        bytes data;
-        Enum.Operation operation;
-        mapping(address => VoterState) voters;
-    }
-
-    /// @notice is the contract initialized
-    bool public initialized;
-    /// @notice The voting token
-    ERC20Votes public token;
-
-    /// @notice 100% expressed as a percentage of 10^18
-    uint64 public PCT_BASE;
-    /// @notice The support required to pass a vote (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
-    uint64 public supportRequiredPct;
-    /// @notice The minimum acceptance quorum for a vote to succeed (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
-    uint64 public minAcceptQuorumPct;
-    /// @notice The duration of a vote in seconds
-    uint64 public voteTime;
-
-    /// @notice The total number of votes
-    uint256 public votesLength;
-    /// @notice Mocking a variable length array of all the votes created
-    mapping(uint256 => Vote) internal votes;
-
-    /// @notice The address of the MetaTransactionForwarder
-    address public immutable metaTxForwarder =
-        0x84a0856b038eaAd1cC7E297cF34A7e72685A8693;
-
-    /* ====================================================================== */
-    /*                              MODIFIERS
-    /* ====================================================================== */
-
-    // TODO: reenable this modifier
-    // modifier voteExists(uint256 _voteId) {
-    //     if (_voteId > votesLength) revert VoteDoesNotExist();
-    //     _;
-    // }
-
-    /* ====================================================================== */
     /*                              CONSTRUCTOR
     /* ====================================================================== */
 
-    constructor() ERC2771Context(metaTxForwarder) {
-        // transferOwnership(msg.sender);
-    }
+    constructor() ERC2771Context(metaTxForwarder) {}
 
     /// @notice Initializes the contract
     /// @param _token The address of the voting token
     /// @param _supportRequiredPct The support required to pass a vote (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
     /// @param _minAcceptQuorumPct The minimum acceptance quorum for a vote to succeed (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
     /// @param _voteTime The duration of a vote in seconds
+    /// @param _chainId The network id of the chain
     function initialize(
         ERC20Votes _token,
         uint64 _supportRequiredPct,
         uint64 _minAcceptQuorumPct,
-        uint64 _voteTime
+        uint64 _voteTime,
+        uint256 _chainId
     ) external initializer {
         __Ownable_init();
         initialized = true;
@@ -155,12 +137,205 @@ contract MetaVotingModule is Module, ERC2771Context {
         supportRequiredPct = _supportRequiredPct;
         minAcceptQuorumPct = _minAcceptQuorumPct;
         voteTime = _voteTime;
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                EIP712_DOMAIN_TYPEHASH,
+                keccak256(bytes("Quote")),
+                keccak256(bytes("1")),
+                _chainId,
+                address(this)
+            )
+        );
         emit Initialized(
             _token,
             _supportRequiredPct,
             _minAcceptQuorumPct,
             _voteTime
         );
+    }
+
+    /* ====================================================================== */
+    /*                              USER FUNCTIONS
+    /* ====================================================================== */
+
+    /// @notice Create a new vote about "`_metadata`"
+    /// @param _to Address of the contract to be called
+    /// @param _value Amount of Ether to be sent
+    /// @param _data Calldata to be sent
+    /// @param _operation Operation type of module transaction: 0 == call, 1 == delegate call.
+    /// @param _metadata Vote metadata, link to the lens post
+    /// @param _v Signature v parameter
+    /// @param _r Signature r parameter
+    /// @param _s Signature s parameter
+    /// @return voteId Id for newly created vote
+    function newVote(
+        address _to,
+        uint256 _value,
+        bytes memory _data,
+        Enum.Operation _operation,
+        string memory _metadata,
+        bytes32 _r,
+        bytes32 _s,
+        uint8 _v
+    ) external returns (uint256 voteId) {
+        MetaTransaction memory metaTx = MetaTransaction({
+            nonce: nonces[_msgSender()],
+            from: _msgSender()
+        });
+
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR,
+                keccak256(
+                    abi.encode(
+                        META_TRANSACTION_TYPEHASH,
+                        metaTx.nonce,
+                        metaTx.from
+                    )
+                )
+            )
+        );
+        if (_msgSender() == address(0)) revert InvalidAddress();
+        if (_msgSender() != ecrecover(digest, _v, _r, _s))
+            revert InvalidSignature();
+        nonces[_msgSender()]++;
+
+        return _newVote(_to, _value, _data, _operation, _metadata, true, true);
+    }
+
+    /// @notice Create a new vote about "`_metadata`"
+    /// @param _to Address of the contract to be called
+    /// @param _value Amount of Ether to be sent
+    /// @param _data Calldata to be sent
+    /// @param _operation Operation type of module transaction: 0 == call, 1 == delegate call.
+    /// @param _metadata Vote metadata, link to the lens post
+    /// @return voteId Id for newly created vote
+    function newVote(
+        address _to,
+        uint256 _value,
+        bytes memory _data,
+        Enum.Operation _operation,
+        string memory _metadata
+    ) external returns (uint256 voteId) {
+        return _newVote(_to, _value, _data, _operation, _metadata, true, true);
+    }
+
+    /// @notice Vote `_supports ? 'yes' : 'no'` in vote #`_voteId`
+    /// @dev Initialization check is implicitly provided by `voteExists()` as new votes can only be
+    ///      created via `newVote(),` which requires initialization
+    /// @param _voteId Id for vote
+    /// @param _supports Whether voter supports the vote
+    /// @param _executesIfDecided Whether the vote should execute its action if it becomes decided
+    /// @param _v Signature v parameter
+    /// @param _r Signature r parameter
+    /// @param _s Signature s parameter
+    function vote(
+        uint256 _voteId,
+        bool _supports,
+        bool _executesIfDecided, // voteExists(_voteId)
+        bytes32 _r,
+        bytes32 _s,
+        uint8 _v
+    ) external {
+        if (!canVote(_voteId, msg.sender)) revert CannotVote();
+
+        MetaTransaction memory metaTx = MetaTransaction({
+            nonce: nonces[_msgSender()],
+            from: _msgSender()
+        });
+
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR,
+                keccak256(
+                    abi.encode(
+                        META_TRANSACTION_TYPEHASH,
+                        metaTx.nonce,
+                        metaTx.from
+                    )
+                )
+            )
+        );
+        if (_msgSender() == address(0)) revert InvalidAddress();
+        if (_msgSender() != ecrecover(digest, _v, _r, _s))
+            revert InvalidSignature();
+        nonces[_msgSender()]++;
+
+        _vote(_voteId, _supports, msg.sender, _executesIfDecided);
+    }
+
+    /// @notice Vote `_supports ? 'yes' : 'no'` in vote #`_voteId`
+    /// @dev Initialization check is implicitly provided by `voteExists()` as new votes can only be
+    ///      created via `newVote(),` which requires initialization
+    /// @param _voteId Id for vote
+    /// @param _supports Whether voter supports the vote
+    /// @param _executesIfDecided Whether the vote should execute its action if it becomes decided
+    function vote(
+        uint256 _voteId,
+        bool _supports,
+        bool _executesIfDecided // voteExists(_voteId)
+    ) external {
+        if (!canVote(_voteId, msg.sender)) revert CannotVote();
+        _vote(_voteId, _supports, msg.sender, _executesIfDecided);
+    }
+
+    /// @dev public function to execute a vote
+    /// @param _voteId Id for vote
+    /// @param _v Signature v parameter
+    /// @param _r Signature r parameter
+    /// @param _s Signature s parameter
+    function executeVote(
+        uint256 _voteId,
+        bytes32 _r,
+        bytes32 _s,
+        uint8 _v
+    ) public {
+        if (_voteId > votesLength) revert VoteDoesNotExist();
+        if (!canExecute(_voteId)) revert CannotExecute();
+
+        MetaTransaction memory metaTx = MetaTransaction({
+            nonce: nonces[_msgSender()],
+            from: _msgSender()
+        });
+
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR,
+                keccak256(
+                    abi.encode(
+                        META_TRANSACTION_TYPEHASH,
+                        metaTx.nonce,
+                        metaTx.from
+                    )
+                )
+            )
+        );
+        if (_msgSender() == address(0)) revert InvalidAddress();
+        if (_msgSender() != ecrecover(digest, _v, _r, _s))
+            revert InvalidSignature();
+
+        Vote storage vote_ = votes[_voteId];
+        vote_.executed = true;
+
+        exec(vote_.to, vote_.value, vote_.data, vote_.operation);
+
+        emit ExecuteVote(_voteId);
+    }
+
+    /// @dev public function to execute a vote
+    /// @param _voteId Id for vote
+    function executeVote(uint256 _voteId) public {
+        if (_voteId > votesLength) revert VoteDoesNotExist();
+        if (!canExecute(_voteId)) revert CannotExecute();
+        Vote storage vote_ = votes[_voteId];
+        vote_.executed = true;
+
+        exec(vote_.to, vote_.value, vote_.data, vote_.operation);
+
+        emit ExecuteVote(_voteId);
     }
 
     /* ====================================================================== */
@@ -229,7 +404,10 @@ contract MetaVotingModule is Module, ERC2771Context {
             token.getPastVotes(_voter, vote_.snapshotBlock) > 0;
     }
 
+    /// @dev check if a vote is still open and not executed
+    /// @return True if the given vote is open, false otherwise
     function isVoteOpen(uint256 voteId) public view returns (bool) {
+        if (voteId > votesLength) revert VoteDoesNotExist();
         Vote storage vote_ = votes[voteId];
         return
             uint64(block.number) < vote_.startDate + voteTime &&
@@ -238,7 +416,9 @@ contract MetaVotingModule is Module, ERC2771Context {
 
     /// @dev function to check if a vote can be executed. It assumes the queried vote exists.
     /// @return True if the given vote can be executed, false otherwise
-    function canExecute(uint256 _voteId) public returns (bool) {
+    function canExecute(uint256 _voteId) public view returns (bool) {
+        if (_voteId > votesLength) revert VoteDoesNotExist();
+
         Vote storage vote_ = votes[_voteId];
 
         if (vote_.executed) {
@@ -253,7 +433,7 @@ contract MetaVotingModule is Module, ERC2771Context {
         }
 
         // Vote ended?
-        if (_isVoteOpen(vote_)) {
+        if (isVoteOpen(_voteId)) {
             return false;
         }
         // Has enough support?
@@ -268,42 +448,6 @@ contract MetaVotingModule is Module, ERC2771Context {
             return false;
         }
         return true;
-    }
-
-    /* ====================================================================== */
-    /*                              USER FUNCTIONS
-    /* ====================================================================== */
-
-    /// @notice Create a new vote about "`_metadata`"
-    /// @param _to Address of the contract to be called
-    /// @param _value Amount of Ether to be sent
-    /// @param _data Calldata to be sent
-    /// @param _operation Operation type of module transaction: 0 == call, 1 == delegate call.
-    /// @param _metadata Vote metadata, link to the lens post
-    /// @return voteId Id for newly created vote
-    function newVote(
-        address _to,
-        uint256 _value,
-        bytes memory _data,
-        Enum.Operation _operation,
-        string memory _metadata
-    ) external returns (uint256 voteId) {
-        return _newVote(_to, _value, _data, _operation, _metadata, true, true);
-    }
-
-    /// @notice Vote `_supports ? 'yes' : 'no'` in vote #`_voteId`
-    /// @dev Initialization check is implicitly provided by `voteExists()` as new votes can only be
-    ///      created via `newVote(),` which requires initialization
-    /// @param _voteId Id for vote
-    /// @param _supports Whether voter supports the vote
-    /// @param _executesIfDecided Whether the vote should execute its action if it becomes decided
-    function vote(
-        uint256 _voteId,
-        bool _supports,
-        bool _executesIfDecided // voteExists(_voteId)
-    ) external {
-        if (!canVote(_voteId, msg.sender)) revert CannotVote();
-        _vote(_voteId, _supports, msg.sender, _executesIfDecided);
     }
 
     /* ====================================================================== */
@@ -351,7 +495,6 @@ contract MetaVotingModule is Module, ERC2771Context {
 
         emit StartVote(voteId, _msgSender(), _metadata);
 
-        // TODO: implement Vote first
         if (_castVote && canVote(voteId, _msgSender())) {
             _vote(voteId, true, _msgSender(), _executesIfDecided);
         }
@@ -388,48 +531,9 @@ contract MetaVotingModule is Module, ERC2771Context {
         emit CastVote(_voteId, _voter, _supports, voterStake);
 
         // TODO: implement executeVote
-        // if (_executesIfDecided && canExecute(_voteId)) {
-        //     // We've already checked if the vote can be executed with `_canExecute()`
-        //     _unsafeExecuteVote(_voteId);
-        // }
-    }
-
-    /// @dev Internal function to execute a vote. It assumes the queried vote exists.
-    function _executeVote(uint256 _voteId) internal {
-        if (!canExecute(_voteId)) revert CannotExecute();
-        _unsafeExecuteVote(_voteId);
-    }
-
-    /// @dev Unsafe version of _executeVote that assumes you have already checked if the vote can be executed and exists
-    function _unsafeExecuteVote(uint256 _voteId) internal {
-        Vote storage vote_ = votes[_voteId];
-        vote_.executed = true;
-
-        exec(vote_.to, vote_.value, vote_.data, vote_.operation);
-
-        emit ExecuteVote(_voteId);
-    }
-
-    /// @dev Internal function to check if a voter can participate on a vote. It assumes the queried vote exists.
-    /// @return True if the given voter can participate a certain vote, false otherwise
-    function _canVote(uint256 _voteId, address _voter)
-        internal
-        view
-        returns (bool)
-    {
-        Vote storage vote_ = votes[_voteId];
-        return
-            _isVoteOpen(vote_) &&
-            token.getPastVotes(_voter, vote_.snapshotBlock) > 0;
-    }
-
-    /// @dev Internal function to check if a vote is still open
-    /// @return True if the given vote is open, false otherwise
-
-    function _isVoteOpen(Vote storage vote_) internal view returns (bool) {
-        return
-            uint64(block.number) < vote_.startDate + (voteTime) &&
-            !vote_.executed;
+        if (_executesIfDecided && canExecute(_voteId)) {
+            executeVote(_voteId);
+        }
     }
 
     /// @dev Calculates whether `_value` is more than a percentage `_pct` of `_total`
