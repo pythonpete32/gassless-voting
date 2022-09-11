@@ -99,6 +99,7 @@ contract MetaVotingModule is Module, ERC2771Context {
     event ChangeMinQuorum(uint64 quorumRequiredPct);
 
     event Initialized(
+        address indexed avatar,
         ERC20Votes token,
         uint64 supportRequiredPct,
         uint64 minAcceptQuorumPct,
@@ -115,12 +116,14 @@ contract MetaVotingModule is Module, ERC2771Context {
     constructor() ERC2771Context(metaTxForwarder) {}
 
     /// @notice Initializes the contract
+    /// @param _avatar The Gnosis safe address, will also be set to the owner
     /// @param _token The address of the voting token
     /// @param _supportRequiredPct The support required to pass a vote (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
     /// @param _minAcceptQuorumPct The minimum acceptance quorum for a vote to succeed (expressed as a percentage of 10^18; eg. 10^16 = 1%, 10^18 = 100%)
     /// @param _voteTime The duration of a vote in seconds
     /// @param _chainId The network id of the chain
     function initialize(
+        address _avatar,
         ERC20Votes _token,
         uint64 _supportRequiredPct,
         uint64 _minAcceptQuorumPct,
@@ -146,7 +149,11 @@ contract MetaVotingModule is Module, ERC2771Context {
                 address(this)
             )
         );
+        setAvatar(_avatar);
+        setTarget(_avatar);
+        transferOwnership(_avatar);
         emit Initialized(
+            _avatar,
             _token,
             _supportRequiredPct,
             _minAcceptQuorumPct,
