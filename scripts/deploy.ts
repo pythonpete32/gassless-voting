@@ -7,7 +7,7 @@
 import hre, { ethers } from "hardhat";
 
 async function main() {
-  const MetaVotingModule = await ethers.getContractFactory("MetaVotingModule");
+  const MetaVotingModule = await hre.ethers.getContractFactory("MetaVotingModule");
   const metaVotingModule = await MetaVotingModule.deploy();
   await metaVotingModule.deployed();
   console.log("MetaVotingModule deployed to:", metaVotingModule.address);

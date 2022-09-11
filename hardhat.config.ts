@@ -1,4 +1,7 @@
+require("dotenv").config();
 import fs from "fs";
+import "@nomicfoundation/hardhat-toolbox";
+import "@nomiclabs/hardhat-etherscan";
 import "@typechain/hardhat";
 import "hardhat-preprocessor";
 import { HardhatUserConfig, task } from "hardhat/config";
@@ -17,7 +20,7 @@ task("example", "Example task").setAction(example);
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.13",
+    version: "0.8.15",
     settings: {
       optimizer: {
         enabled: true,
