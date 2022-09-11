@@ -17,6 +17,7 @@ install :;
 	forge install OpenZeppelin/openzeppelin-contracts
 	forge install OpenZeppelin/openzeppelin-contracts-upgradeable
 	forge install safe-global/safe-contracts
+	forge install transmissions11/solmate
 
 # Update Dependencies
 update:; forge update

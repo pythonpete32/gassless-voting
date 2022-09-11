@@ -3,9 +3,10 @@
 /// @title Module Interface - A contract that can pass messages to a Module Manager contract if enabled by that contract.
 pragma solidity >=0.7.0 <0.9.0;
 
-import "../interfaces/IAvatar.sol";
 // import "../factory/FactoryFriendly.sol";
+import "../interfaces/IAvatar.sol";
 import "../guard/Guardable.sol";
+import "../common/Enum.sol";
 
 abstract contract Module is Guardable {
     /// @dev Address that will ultimately execute function calls.
