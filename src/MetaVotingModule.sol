@@ -403,7 +403,6 @@ contract MetaVotingModule is Module, ERC2771Context {
     /// @dev Unsafe version of _executeVote that assumes you have already checked if the vote can be executed and exists
     function _unsafeExecuteVote(uint256 _voteId) internal {
         Vote storage vote_ = votes[_voteId];
-        emit TestLog("Should not be HERE!!!!!!");
         vote_.executed = true;
 
         exec(vote_.to, vote_.value, vote_.data, vote_.operation);

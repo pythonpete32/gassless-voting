@@ -67,8 +67,6 @@ contract MetaVotingTestBase is Test {
         changePrank(carol);
         votingToken.delegate(carol);
         vm.stopPrank();
-        emit log_uint(block.number);
         vm.roll(2);
-        emit log_uint(block.number);
     }
 }
